@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
-const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 var jwt = require("jsonwebtoken");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 
 const port = process.env.PORT || 5000;
@@ -62,6 +62,7 @@ async function run() {
     });
 
     // product API section
+    //get  All product
     app.get("/product", async (req, res) => {
       const query = {};
       const result = await ProductCollection.find(query).toArray();
@@ -69,31 +70,43 @@ async function run() {
     });
 
     //get product by email-----my product
-     app.get('/products', async (req, res) => {
+    app.get("/products", async (req, res) => {
       const email = req.query.email;
       console.log(email);
-      const query = { email: email }
+      const query = { email: email };
       console.log(query);
       const bookings = await ProductCollection.find(query).toArray();
       res.send(bookings);
-  });
+    });
 
+    //get by id
+    app.get("/products/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await ProductCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    //store product
     app.post("/products", async (req, res) => {
       const product = req.body;
       const result = await ProductCollection.insertOne(product);
       res.send(result);
     });
 
+    //update product
     app.put("/products/:id", async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
-      const product = rq.body;
+      const product = req.body;
       const option = { upsert: true };
       const updateProduct = {
         $set: {
           price: product.price,
-          des: product.price,
-          image_url: product.price,
+          detail: product.detail,
+          image: product.image,
+          title: product.title,
+          brand: product.brand,
         },
       };
       const result = await ProductCollection.updateOne(
@@ -104,6 +117,7 @@ async function run() {
       res.send(result);
     });
 
+    //delete product
     app.delete("/products/:id", async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
@@ -115,8 +129,10 @@ async function run() {
 }
 run().catch(console.dir);
 
+
+
 app.get("/", (req, res) => {
-  res.send("server running");
+  res.send("server running or server test");
 });
 
 app.listen(port, () => {
