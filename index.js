@@ -23,15 +23,33 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     await client.connect();
-    const userCollection = client.db("product").collection("users");
-    const ProductCollection = client.db("product").collection("product");
+    const usersCollection = client.db("product").collection("users");
+    const ProductCollection = client.db("product").collection("products");
 
-    //save users
+    // save users
+    app.put("/users", async (req, res) => {
+      const user = req.body;
+      console.log(user);
+      const email = user.email;
+      const filter = { email: email };
+      const options = { upsert: true };
+      const obj = {
+        email: user.email,
+        name: user.name,
+      };
+      const updateDoc = { $set: obj };
+      const result = await usersCollection.updateOne(
+        filter,
+        updateDoc,
+        options
+      );
+      res.send(result);
+    });
 
     //users get api
     app.get("/users", async (req, res) => {
       const query = {};
-      const result = await userCollection.find({}).toArray();
+      const result = await usersCollection.find({}).toArray();
       res.send(result);
     });
 
@@ -39,7 +57,7 @@ async function run() {
     app.delete("/users/:id", async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
-      const result = await userCollection.deleteOne(filter);
+      const result = await usersCollection.deleteOne(filter);
       res.send(result);
     });
 
@@ -50,13 +68,23 @@ async function run() {
       res.send(result);
     });
 
-    app.post("/product", async (req, res) => {
+    //get product by email-----my product
+     app.get('/products', async (req, res) => {
+      const email = req.query.email;
+      console.log(email);
+      const query = { email: email }
+      console.log(query);
+      const bookings = await ProductCollection.find(query).toArray();
+      res.send(bookings);
+  });
+
+    app.post("/products", async (req, res) => {
       const product = req.body;
       const result = await ProductCollection.insertOne(product);
       res.send(result);
     });
 
-    app.put("/product/:id", async (req, res) => {
+    app.put("/products/:id", async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
       const product = rq.body;
@@ -76,7 +104,7 @@ async function run() {
       res.send(result);
     });
 
-    app.delete("/product/:id", async (req, res) => {
+    app.delete("/products/:id", async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
       const result = await ProductCollection.deleteOne(filter);
