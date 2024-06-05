@@ -22,9 +22,23 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-    await client.connect();
+    // await client.connect();
     const usersCollection = client.db("product").collection("users");
     const ProductCollection = client.db("product").collection("products");
+
+
+    //JWT TOKEN
+    app.get('/jwt', async (req, res) => {
+      const email = req.query.email;
+      const query = { email: email };
+      const user = await usersCollection.findOne(query);
+      if (user) {
+          const token = jwt.sign({ email }, process.env.ACCESS_TOKEN, { expiresIn: '1h' });
+          return res.send({ accessToken: token });
+      }
+      console.log(user)
+      res.status(403).send({ accessToken: '' });
+  })
 
     // save users
     app.put("/users", async (req, res) => {
@@ -60,6 +74,14 @@ async function run() {
       const result = await usersCollection.deleteOne(filter);
       res.send(result);
     });
+
+     //get admin email
+     app.get('/users/admin/:email', async (req, res) => {
+      const email = req.params.email;
+      const query = { email }
+      const user = await usersCollection.findOne(query);
+      res.send({ isAdmin: user?.role === 'Admin' })
+  })
 
     // product API section
     //get  All product
@@ -128,8 +150,6 @@ async function run() {
   }
 }
 run().catch(console.dir);
-
-
 
 app.get("/", (req, res) => {
   res.send("server running or server test");
