@@ -20,6 +20,24 @@ const client = new MongoClient(uri, {
   },
 });
 
+//jwt 
+function verifyJWT(req, res, next) {
+  const authHeader = req.headers.authorization;
+  console.log(authHeader);
+  if (!authHeader) {
+      return res.status(401).send('unauthorized access')
+  }
+  const token = authHeader.split(' ')[1]
+  console.log(token);
+  jwt.verify(token, process.env.ACCESS_TOKEN, function (err, decoded) {
+      if (err) {
+          return res.status(403).send({ message: 'forbidden access' })
+      }
+      req.decoded = decoded;
+      next();
+  })
+}
+
 async function run() {
   try {
     // await client.connect();
@@ -68,7 +86,7 @@ async function run() {
     });
 
     //users delete api
-    app.delete("/users/:id", async (req, res) => {
+    app.delete("/users/:id", verifyJWT, async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
       const result = await usersCollection.deleteOne(filter);
@@ -109,15 +127,15 @@ async function run() {
       res.send(result);
     });
 
-    //store product
-    app.post("/products", async (req, res) => {
+    //add product
+    app.post("/products", verifyJWT, async (req, res) => {
       const product = req.body;
       const result = await ProductCollection.insertOne(product);
       res.send(result);
     });
 
     //update product
-    app.put("/products/:id", async (req, res) => {
+    app.put("/products/:id", verifyJWT, async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
       const product = req.body;
@@ -140,7 +158,7 @@ async function run() {
     });
 
     //delete product
-    app.delete("/products/:id", async (req, res) => {
+    app.delete("/products/:id", verifyJWT, async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
       const result = await ProductCollection.deleteOne(filter);
