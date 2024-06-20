@@ -20,22 +20,22 @@ const client = new MongoClient(uri, {
   },
 });
 
-//jwt 
+//jwt
 function verifyJWT(req, res, next) {
   const authHeader = req.headers.authorization;
   console.log(authHeader);
   if (!authHeader) {
-      return res.status(401).send('unauthorized access')
+    return res.status(401).send("unauthorized access");
   }
-  const token = authHeader.split(' ')[1]
+  const token = authHeader.split(" ")[1];
   console.log(token);
   jwt.verify(token, process.env.ACCESS_TOKEN, function (err, decoded) {
-      if (err) {
-          return res.status(403).send({ message: 'forbidden access' })
-      }
-      req.decoded = decoded;
-      next();
-  })
+    if (err) {
+      return res.status(403).send({ message: "forbidden access" });
+    }
+    req.decoded = decoded;
+    next();
+  });
 }
 
 async function run() {
@@ -44,19 +44,35 @@ async function run() {
     const usersCollection = client.db("product").collection("users");
     const ProductCollection = client.db("product").collection("products");
 
-
     //JWT TOKEN
-    app.get('/jwt', async (req, res) => {
+    app.get("/jwt", async (req, res) => {
       const email = req.query.email;
       const query = { email: email };
       const user = await usersCollection.findOne(query);
       if (user) {
-          const token = jwt.sign({ email }, process.env.ACCESS_TOKEN, { expiresIn: '1h' });
-          return res.send({ accessToken: token });
+        const token = jwt.sign({ email }, process.env.ACCESS_TOKEN, {
+          expiresIn: "1h",
+        });
+        return res.send({ accessToken: token });
       }
-      console.log(user)
-      res.status(403).send({ accessToken: '' });
-  })
+      console.log(user);
+      res.status(403).send({ accessToken: "" });
+    });
+
+    //search Api
+    app.get("/search/:key", async (req, res) => {
+      const product = await ProductCollection.find({
+        $or: [
+          {
+            category: { $regex: req.params.key },
+          },
+          {
+            brand: { $regex: req.params.key },
+          },
+        ],
+      }).toArray();
+      res.send(product);
+    });
 
     // save users
     app.put("/users", async (req, res) => {
@@ -93,13 +109,13 @@ async function run() {
       res.send(result);
     });
 
-     //get admin email
-     app.get('/users/admin/:email', async (req, res) => {
+    //get admin email
+    app.get("/users/admin/:email", async (req, res) => {
       const email = req.params.email;
-      const query = { email }
+      const query = { email };
       const user = await usersCollection.findOne(query);
-      res.send({ isAdmin: user?.role === 'Admin' })
-  })
+      res.send({ isAdmin: user?.role === "Admin" });
+    });
 
     // product API section
     //get  All product
